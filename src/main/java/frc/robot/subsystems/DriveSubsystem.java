@@ -19,8 +19,6 @@ import edu.wpi.first.networktables.IntegerSubscriber;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.util.WPIUtilJNI;
-import edu.wpi.first.wpilibj.ADIS16470_IMU;
-import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
 import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.Constants.DriveConstants;
 import frc.utils.SwerveUtils;
@@ -48,38 +46,33 @@ public class DriveSubsystem extends SubsystemBase {
       DriveConstants.kRearRightTurningCanId,
       DriveConstants.kBackRightChassisAngularOffset);
 
-  // Configure the NT4 topic (oculus/command) to communicate with the Quest HMD
+  // Configure Network Tables topics (oculus/...) to communicate with the Quest HMD
   NetworkTableInstance nt4Instance = NetworkTableInstance.getDefault();
   NetworkTable nt4Table = nt4Instance.getTable("oculus");
   private IntegerSubscriber questMiso = nt4Table.getIntegerTopic("miso").subscribe(0);
   private IntegerPublisher questMosi = nt4Table.getIntegerTopic("mosi").publish();
   
-  // Subscribe to the NT4 oculus data topics
+  // Subscribe to the Network Tables oculus data topics
   private IntegerSubscriber questFrameCount = nt4Table.getIntegerTopic("frameCount").subscribe(0);
   private DoubleSubscriber questTimestamp = nt4Table.getDoubleTopic("timestamp").subscribe(0.0f);
   private FloatArraySubscriber questPosition = nt4Table.getFloatArrayTopic("position").subscribe(new float[]{0.0f, 0.0f, 0.0f});
   private FloatArraySubscriber questQuaternion = nt4Table.getFloatArrayTopic("quaternion").subscribe(new float[]{0.0f, 0.0f, 0.0f, 0.0f});
   private FloatArraySubscriber questEulerAngles = nt4Table.getFloatArrayTopic("eulerAngles").subscribe(new float[]{0.0f, 0.0f, 0.0f});
 
-  // Initialize the IMU
-  //private final ADIS16470_IMU m_gyro = new ADIS16470_IMU();
-
-  // Local gyro helper variables
+  // Local heading helper variables
   private float yaw_offset = 0.0f;
 
-  // Slew rate filter variables for controlling lateral acceleration
+  // Slew rate filter variables for tuning lateral acceleration
   private double m_currentRotation = 0.0;
   private double m_currentTranslationDir = 0.0;
   private double m_currentTranslationMag = 0.0;
-
   private SlewRateLimiter m_magLimiter = new SlewRateLimiter(DriveConstants.kMagnitudeSlewRate);
   private SlewRateLimiter m_rotLimiter = new SlewRateLimiter(DriveConstants.kRotationalSlewRate);
   private double m_prevTime = WPIUtilJNI.now() * 1e-6;
 
-  // Odometry class for tracking robot pose
+  // Odometry class for tracking the robot's pose
   SwerveDriveOdometry m_odometry = new SwerveDriveOdometry(
       DriveConstants.kDriveKinematics,
-      //Rotation2d.fromDegrees(m_gyro.getAngle(IMUAxis.kZ)),
       Rotation2d.fromDegrees(getOculusYaw()),
       new SwerveModulePosition[] {
           m_frontLeft.getPosition(),
@@ -88,11 +81,11 @@ public class DriveSubsystem extends SubsystemBase {
           m_rearRight.getPosition()
       });
 
-  /** Creates a new DriveSubsystem. */
+  // Create a new DriveSubsystem
   public DriveSubsystem() {
   }
 
-  /* Update the odometry in the periodic block */
+  // Update odometry in the periodic block
   @Override
   public void periodic() {
     m_odometry.update(
@@ -105,12 +98,12 @@ public class DriveSubsystem extends SubsystemBase {
         });
   }
 
-  /* Returns the currently-estimated pose of the robot */
+  // Return the currently-estimated pose of the robot
   public Pose2d getPose() {
     return m_odometry.getPoseMeters();
   }
 
-  /* Resets the odometry to the specified pose */
+  // Reset the odometry to the specified pose
   public void resetOdometry(Pose2d pose) {
     m_odometry.resetPosition(
         Rotation2d.fromDegrees(getOculusYaw()),
@@ -186,14 +179,13 @@ public class DriveSubsystem extends SubsystemBase {
       m_currentRotation = rot;
     }
 
-    /* Converts the commanded speeds into the correct units for the drivetrain */
+    // Convert the commanded speeds to the correct units for the drivetrain
     double xSpeedDelivered = xSpeedCommanded * DriveConstants.kMaxSpeedMetersPerSecond;
     double ySpeedDelivered = ySpeedCommanded * DriveConstants.kMaxSpeedMetersPerSecond;
     double rotDelivered = m_currentRotation * DriveConstants.kMaxAngularSpeed;
 
     var swerveModuleStates = DriveConstants.kDriveKinematics.toSwerveModuleStates(
         fieldRelative
-            //? ChassisSpeeds.fromFieldRelativeSpeeds(xSpeedDelivered, ySpeedDelivered, rotDelivered, Rotation2d.fromDegrees(m_gyro.getAngle(IMUAxis.kZ)))
             ? ChassisSpeeds.fromFieldRelativeSpeeds(xSpeedDelivered, ySpeedDelivered, rotDelivered, Rotation2d.fromDegrees(getOculusYaw()))
             : new ChassisSpeeds(xSpeedDelivered, ySpeedDelivered, rotDelivered));
     SwerveDriveKinematics.desaturateWheelSpeeds(
@@ -204,7 +196,7 @@ public class DriveSubsystem extends SubsystemBase {
     m_rearRight.setDesiredState(swerveModuleStates[3]);
   }
 
-  /* Sets the wheels into an X formation to prevent movement */
+  // Set the wheels into an X formation to prevent movement
   public void setX() {
     m_frontLeft.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45)));
     m_frontRight.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(-45)));
@@ -212,7 +204,7 @@ public class DriveSubsystem extends SubsystemBase {
     m_rearRight.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45)));
   }
 
-  /* Sets the swerve module states */
+  // Set the swerve module states
   public void setModuleStates(SwerveModuleState[] desiredStates) {
     SwerveDriveKinematics.desaturateWheelSpeeds(
         desiredStates, DriveConstants.kMaxSpeedMetersPerSecond);
@@ -222,7 +214,7 @@ public class DriveSubsystem extends SubsystemBase {
     m_rearRight.setDesiredState(desiredStates[3]);
   }
 
-  /* Zeros the encoders on the swerve modules */
+  // Zero the encoders on the swerve modules
   public void resetEncoders() {
     m_frontLeft.resetEncoders();
     m_rearLeft.resetEncoders();
@@ -230,20 +222,20 @@ public class DriveSubsystem extends SubsystemBase {
     m_rearRight.resetEncoders();
   }
 
-  /* Zeroes the realative robot heading */
+  // Zero the realative robot heading
   public void zeroHeading() {
     float[] eulerAngles = questEulerAngles.get();
     yaw_offset = eulerAngles[1];
   }
 
-  /* Zeroes the absolute 3D position of the robot (similar to long-pressing the quest logo) */
+  // Zero the absolute 3D position of the robot (similar to long-pressing the quest logo)
   public void zeroPosition() {
     if (questMiso.get() != 99) {
       questMosi.set(1);
     }
   }
 
-  /* Cleans up oculus subroutine messages after processing on the headset */
+  // Clean up oculus subroutine messages after processing on the headset
   public void cleanUpOculusMessages() {
     if (questMiso.get() == 99) {
       questMosi.set(0);
@@ -251,17 +243,17 @@ public class DriveSubsystem extends SubsystemBase {
     }
   }
 
-  /* Returns the robot heading in degrees, between -180 and 180 degrees */
+  // Return the robot heading in degrees, between -180 and 180 degrees
   public double getHeading() {
     return Rotation2d.fromDegrees(getOculusYaw()).getDegrees();
   }
 
-  /* Get the rotation rate of the robot */
+  // Get the rotation rate of the robot
   public double getTurnRate() {
     return getOculusYaw() * (DriveConstants.kGyroReversed ? -1.0 : 1.0);
   }
 
-  /* Get the yaw Euler angle of the headset */
+  // Get the yaw Euler angle of the headset
   private float getOculusYaw() {
     float[] eulerAngles = questEulerAngles.get();
     return eulerAngles[1] - yaw_offset;
