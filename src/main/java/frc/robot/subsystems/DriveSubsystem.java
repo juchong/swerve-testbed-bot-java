@@ -239,7 +239,6 @@ public class DriveSubsystem extends SubsystemBase {
   public void cleanUpOculusMessages() {
     if (questMiso.get() == 99) {
       questMosi.set(0);
-      DriverStation.reportWarning("Cleared value",false);
     }
   }
 
