@@ -13,6 +13,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.trajectory.TrajectoryConfig;
 import edu.wpi.first.math.trajectory.TrajectoryGenerator;
+import edu.wpi.first.wpilibj.PS4Controller;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.XboxController.Button;
 import frc.robot.Constants.AutoConstants;
@@ -31,9 +32,9 @@ import java.util.List;
  * periodic methods (other than the scheduler calls).  Instead, the structure of the robot
  * (including subsystems, commands, and button mappings) should be declared here.
  */
+
 public class RobotContainer {
-  // The robot's subsystems
-  private final DriveSubsystem m_robotDrive = new DriveSubsystem();
+  private final DriveSubsystem m_robotDrive;
 
   // The driver's controller
   XboxController m_driverController = new XboxController(OIConstants.kDriverControllerPort);
@@ -42,6 +43,10 @@ public class RobotContainer {
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
   public RobotContainer() {
+
+    // Initialize DriveSubsystem with the NetworkTable fields
+    m_robotDrive = new DriveSubsystem();
+
     // Configure the button bindings
     configureButtonBindings();
 
@@ -69,9 +74,13 @@ public class RobotContainer {
    */
   private void configureButtonBindings() {
     new JoystickButton(m_driverController, Button.kB.value)
-        .whileTrue(new RunCommand(
-            () -> m_robotDrive.setX(),
-            m_robotDrive));
+        .whileTrue(new RunCommand(() -> m_robotDrive.setX(), m_robotDrive));
+    
+    new JoystickButton(m_driverController, Button.kA.value)
+        .whileTrue(new RunCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
+
+    new JoystickButton(m_driverController, Button.kY.value)
+        .whileTrue(new RunCommand(() -> m_robotDrive.zeroPosition(), m_robotDrive));
   }
 
   /**
@@ -119,4 +128,10 @@ public class RobotContainer {
     // Run path following command, then stop at the end.
     return swerveControllerCommand.andThen(() -> m_robotDrive.drive(0, 0, 0, false, false));
   }
+
+  // Allow access to m_robotDrive outside of the container
+  public DriveSubsystem getDriveSubsystem() {
+    return m_robotDrive;
+  }
+
 }

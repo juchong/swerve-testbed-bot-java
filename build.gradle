@@ -5,8 +5,8 @@ plugins {
 
 wpi.maven.useLocal = false
 wpi.maven.useFrcMavenLocalDevelopment = true
-wpi.versions.wpilibVersion = '2022.424242.+'
-wpi.versions.wpimathVersion = '2022.424242.+'
+wpi.versions.wpilibVersion = '2024.3.2'
+wpi.versions.wpimathVersion = '2024.3.2'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
