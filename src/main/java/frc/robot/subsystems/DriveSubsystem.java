@@ -4,14 +4,18 @@
 
 package frc.robot.subsystems;
 
+import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Quaternion;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.networktables.FloatArraySubscriber;
 import edu.wpi.first.networktables.IntegerPublisher;
@@ -23,6 +27,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.Constants.DriveConstants;
 import frc.utils.SwerveUtils;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import org.littletonrobotics.junction.Logger;
 
 public class DriveSubsystem extends SubsystemBase {
   // Create MAXSwerveModules
@@ -69,6 +74,7 @@ public class DriveSubsystem extends SubsystemBase {
   private SlewRateLimiter m_magLimiter = new SlewRateLimiter(DriveConstants.kMagnitudeSlewRate);
   private SlewRateLimiter m_rotLimiter = new SlewRateLimiter(DriveConstants.kRotationalSlewRate);
   private double m_prevTime = WPIUtilJNI.now() * 1e-6;
+  private Pose2d resetPosition = new Pose2d(new Translation2d(0, Rotation2d.fromDegrees(0)), Rotation2d.fromDegrees(0));
 
   // Odometry class for tracking the robot's pose
   SwerveDriveOdometry m_odometry = new SwerveDriveOdometry(
@@ -96,6 +102,13 @@ public class DriveSubsystem extends SubsystemBase {
             m_rearLeft.getPosition(),
             m_rearRight.getPosition()
         });
+    Logger.recordOutput("SwerveOdometry", m_odometry.getPoseMeters());
+    Logger.recordOutput("OculusAll", getOculusPose().minus(resetPosition));
+    Logger.recordOutput("OculusPositionFloats", questPosition.get());
+    Logger.recordOutput("OculusQuaternionFloats", questQuaternion.get());
+    float[] qqFloats = questQuaternion.get();
+    var qq = new Quaternion(qqFloats[0], qqFloats[1], qqFloats[2], qqFloats[3]);
+    Logger.recordOutput("OculusQuaternion", qq);
   }
 
   // Return the currently-estimated pose of the robot
@@ -105,6 +118,11 @@ public class DriveSubsystem extends SubsystemBase {
 
   // Reset the odometry to the specified pose
   public void resetOdometry(Pose2d pose) {
+    resetPosition = getOculusPose();
+    m_frontLeft.resetEncoders();
+    m_frontRight.resetEncoders();
+    m_rearLeft.resetEncoders();
+    m_rearRight.resetEncoders();
     m_odometry.resetPosition(
         Rotation2d.fromDegrees(getOculusYaw()),
         new SwerveModulePosition[] {
@@ -230,6 +248,7 @@ public class DriveSubsystem extends SubsystemBase {
 
   // Zero the absolute 3D position of the robot (similar to long-pressing the quest logo)
   public void zeroPosition() {
+    resetOdometry(new Pose2d(new Translation2d(0, 0), new Rotation2d(0)));
     if (questMiso.get() != 99) {
       questMosi.set(1);
     }
@@ -256,5 +275,16 @@ public class DriveSubsystem extends SubsystemBase {
   private float getOculusYaw() {
     float[] eulerAngles = questEulerAngles.get();
     return eulerAngles[1] - yaw_offset;
+  }
+
+  private Translation2d getOculusPosition() {
+    float[] oculusPosition = questPosition.get();
+    return new Translation2d(
+            Math.sqrt(Math.pow(oculusPosition[0], 2) + Math.pow(oculusPosition[2], 2)),
+            Rotation2d.fromRadians(Math.atan(oculusPosition[0]*-1/oculusPosition[2]))).unaryMinus();
+  }
+
+  private Pose2d getOculusPose() {
+    return new Pose2d(getOculusPosition(), Rotation2d.fromDegrees(getOculusYaw()));
   }
 }
