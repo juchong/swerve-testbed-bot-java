@@ -26,12 +26,12 @@ public final class Constants {
   public static final class DriveConstants {
     // Driving Parameters - Note that these are not the maximum capable speeds of
     // the robot, rather the allowed maximum speeds
-    public static final double kMaxSpeedMetersPerSecond = 4.8;
+    public static final double kMaxSpeedMetersPerSecond = 2.8;
     public static final double kMaxAngularSpeed = 2 * Math.PI; // radians per second
 
-    public static final double kDirectionSlewRate = 1.2; // radians per second
-    public static final double kMagnitudeSlewRate = 1.8; // percent per second (1 = 100%)
-    public static final double kRotationalSlewRate = 2.0; // percent per second (1 = 100%)
+    public static final double kDirectionSlewRate = 2.5; // radians per second
+    public static final double kMagnitudeSlewRate = 2.5; // percent per second (1 = 100%)
+    public static final double kRotationalSlewRate = 4.0; // percent per second (1 = 100%)
 
     // Chassis configuration
     // Distance between centers of right and left wheels on robot (in meters)
@@ -118,8 +118,8 @@ public final class Constants {
   // Configured for GuliKit KingKong 2 PRO
   public static final class OIConstants {
     public static final int kDriverControllerPort = 0;
-    public static final double kDriveDeadband = 0.1;
-    public static final double kHeadingDeadband = 0.1;
+    public static final double kDriveDeadband = 0.05;
+    public static final double kHeadingDeadband = 0.05;
   }
 
   public static final class AutoConstants {
